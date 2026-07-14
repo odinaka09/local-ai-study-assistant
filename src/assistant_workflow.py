@@ -5,7 +5,6 @@ import pathlib
 from ingest_docs import convert_pdf_to_markdown
 from local_llm import query_local_assistant
 import markdown
-from xhtml2pdf import pisa
 
 
 # Configure logging
