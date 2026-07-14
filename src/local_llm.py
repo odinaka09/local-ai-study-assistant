@@ -14,7 +14,7 @@ def query_local_assistant(system_prompt: str, user_content: str, model_name: str
         ],
         options={
             'temperature': 0.2,  # Constrain decoding temperature to minimize hallucination
-            'num_predict': 2500,  # Allow longer outputs
+            'num_predict': 5000,  # Allow longer outputs
         }
     )
     

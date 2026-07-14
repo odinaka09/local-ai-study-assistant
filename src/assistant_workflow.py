@@ -2,7 +2,6 @@ import os
 import argparse
 import logging
 import pathlib
-import re
 from ingest_docs import convert_pdf_to_markdown
 from local_llm import query_local_assistant
 import markdown
@@ -58,8 +57,8 @@ def generate_study_guide(pdf_path: str, output_md_path: str, model_name: str, nu
     # 3. Map Phase: Extract notes from each chunk
     extracted_notes = ""
     extraction_prompt = """
-    You are an AI data extractor. Extract the core concepts, mathematical formulas, and technical definitions from this text slice. 
-    CRITICAL: If you see messy, garbled text that represents a mathematical equation, translate it into clean LaTeX format. Keep it highly condensed.
+    You are an AI data extractor. Extract core concepts, definitions, and formulas from the text. 
+    CRITICAL: You will see garbled math from PDF extraction (e.g., "SD (x) / V ¯ x" or "N 3 - x ~~ x ~~"). You MUST translate these broken strings into clean LaTeX (e.g., \frac{SD(x)}{\bar{x}}). Do not output the broken symbols.
     """
     for i, chunk in enumerate(chunks):
         logging.info(f"Mapping chunk {i+1}/{len(chunks)}... (Extracting raw data)")
@@ -74,32 +73,33 @@ def generate_study_guide(pdf_path: str, output_md_path: str, model_name: str, nu
     # 4. Reduce Phase: Final Synthesis
     logging.info("Reduce Phase: Synthesizing extracted data into the final study guide...")
     
-    system_prompt = system_prompt = f"""
-    You are an expert AI academic tutor. Analyze the provided extracted lecture notes and generate a highly structured study guide strictly following this format:
+    system_prompt = f"""
+    You are an expert AI tutor. You MUST output EXACTLY 6 sections. Do not stop generating until Section 6 is finished.
     
     ## 1. Executive Summary
-    Provide a concise, 3-4 sentence high-level overview of the document's core theme.
+    Provide a 3-4 sentence overview.
     
     ## 2. Key Concepts & Core Logic
-    Extract exactly {num_bullets} detailed bullet points explaining the most critical information, not just listing keywords.
+    Extract exactly {num_bullets} detailed bullet points.
     
     ## 3. Formulas, Syntax & Code Blocks
-    EXTRACT ALL mathematical formulas, Python syntax, and strict technical definitions. 
-    CRITICAL MATH RULE: You MUST format all mathematical formulas using standard LaTeX syntax (e.g., $$ \\sigma^2 = \\frac{{\\sum (x_i - \\mu)^2}}{{N}} $$). Do not output messy unicode.
+    Use standard LaTeX syntax enclosed in $$ (e.g., $$ \\sigma^2 = \\frac{{\\sum (x_i - \\mu)^2}}{{N}} $$). 
     
     ## 4. Common Pitfalls & Edge Cases
-    Identify 2-3 common misconceptions, edge cases, or frequent errors related to this topic.
+    Identify 2-3 common errors.
     
     ## 5. Practice Exam
-    Generate exactly {num_questions} highly technical, scenario-based multiple-choice questions to test deep understanding. 
-    CRITICAL EXAM RULE: DO NOT put the answers in this section. Only provide the question and the A/B/C/D options.
+    Generate {num_questions} questions. YOU MUST FORMAT EXACTLY LIKE THIS:
+    1. [Question text]
+    A) [Option]
+    B) [Option]
+    C) [Option]
+    D) [Option]
     
     ## 6. Answer Key
-    Provide the correct answers here. For each answer, you MUST include a detailed 1-2 sentence explanation detailing WHY the answer is correct and the underlying logic. "Because it is the formula" is an unacceptable explanation.
-    You MUST output the exact answers to all {num_questions} questions immediately below this heading. Do NOT use placeholders or notes. Format each answer exactly like this:
-    1. [Correct Option Letter] - [1-2 sentence logical explanation of WHY it is correct]
-    2. [Correct Option Letter] - [1-2 sentence logical explanation of WHY it is correct]
-    Do not include introductory or concluding filler text. Output the markdown immediately.
+    YOU MUST COMPLETE THIS SECTION. Provide all {num_questions} answers. FORMAT EXACTLY LIKE THIS:
+    1. [Letter] - [1-2 sentence explanation]
+    2. [Letter] - [1-2 sentence explanation]
     """
     
     try:
@@ -120,35 +120,33 @@ def generate_study_guide(pdf_path: str, output_md_path: str, model_name: str, nu
         logging.info(f"Study guide successfully saved to {save_path}")
 
         print("\n" + "-"*50)
-        export_choice = input("Would you like to export this study guide as a PDF? (y/n): ").strip().lower()
+        export_choice = input("Would you like to export this study guide as an interactive HTML page? (y/n): ").strip().lower()
         
         if export_choice == 'y':
-            pdf_save_path = f"data/{pdf_name}_study_guide.pdf"
-            logging.info(f"Generating PDF at {pdf_save_path}...")
+            html_save_path = f"data/{pdf_name}_study_guide.html"
+            logging.info(f"Generating HTML at {html_save_path}...")
             
-            # Convert Markdown to HTML (enabling tables and code blocks)
+            # Convert Markdown to HTML
             html_content = markdown.markdown(final_response, extensions=['tables', 'fenced_code'])
             
-            # Wrap in basic CSS for professional formatting
+            # Wrap in CSS and inject the MathJax engine
             styled_html = f"""
+            <!DOCTYPE html>
             <html>
             <head>
+                <meta charset="utf-8">
+                <title>AI Study Guide</title>
+                <!-- This script instantly renders all LaTeX on the page -->
+                <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
                 <style>
-                    body {{ font-family: Helvetica, Arial, sans-serif; font-size: 12px; line-height: 1.5; color: #333; }}
-                    h1, h2, h3 {{ color: #111; margin-bottom: 10px; }}
-                    h2 {{ border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 20px; }}
-                    code {{ background-color: #f4f4f4; padding: 2px 4px; font-family: "Courier New", Courier, monospace; }}
-                    pre {{ background-color: #f4f4f4; padding: 10px; white-space: pre-wrap; }}
-                    .math-equation {{ 
-                        background-color: #eef2f5; 
-                        border-left: 4px solid #0056b3; 
-                        padding: 10px; 
-                        margin: 10px 0; 
-                        font-family: "Courier New", Courier, monospace;
-                        font-weight: bold;
-                    }}
-                    ul, ol {{ margin-bottom: 10px; }}
-                    li {{ margin-bottom: 5px; }}
+                    body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 15px; line-height: 1.6; color: #333; max-width: 850px; margin: 40px auto; padding: 20px; }}
+                    h1, h2, h3 {{ color: #2c3e50; }}
+                    h2 {{ border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 30px; }}
+                    code {{ background-color: #f8f9fa; padding: 3px 6px; border-radius: 4px; font-family: "Courier New", Courier, monospace; color: #d63384; }}
+                    pre {{ background-color: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; border: 1px solid #e9ecef; }}
+                    pre code {{ color: #333; background-color: transparent; }}
+                    ul, ol {{ margin-bottom: 15px; }}
+                    li {{ margin-bottom: 8px; }}
                 </style>
             </head>
             <body>
@@ -157,16 +155,13 @@ def generate_study_guide(pdf_path: str, output_md_path: str, model_name: str, nu
             </html>
             """
             
-            # Create the PDF
-            with open(pdf_save_path, "w+b") as result_file:
-                pisa_status = pisa.CreatePDF(styled_html, dest=result_file)
+            with open(html_save_path, "w", encoding="utf-8") as f:
+                f.write(styled_html)
                 
-            if pisa_status.err:
-                logging.error("PDF generation encountered an error.")
-            else:
-                logging.info(f"✅ PDF successfully generated at {pdf_save_path}")
+            logging.info(f"✅ HTML successfully generated at {html_save_path}")
+            logging.info("💡 HINT: Double-click the HTML file to open it in your browser to see the math. Press Ctrl+P to save it as a perfect PDF!")
         else:
-            logging.info("Skipping PDF generation.")
+            logging.info("Skipping HTML generation.")
             
     except Exception as e:
         logging.error(f"Final generation failed: {e}")
