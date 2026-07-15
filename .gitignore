@@ -6,9 +6,12 @@ venv/
 __pycache__/
 
 # Data & Outputs
-data/
+data/*
 *.pdf
 *.md
+
+# Exceptions (Files we DO want to push)
+!data/sample_lecture.pdf
 !README.md
 !CHANGELOG.md
 
