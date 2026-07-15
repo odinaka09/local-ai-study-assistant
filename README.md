@@ -1,4 +1,7 @@
 Privacy-Focused AI Study Assistant
+<img width="1920" height="1039" alt="image" src="https://github.com/user-attachments/assets/e53a7fdd-238f-4795-bbd2-4875e97af76a" />
+<img width="960" height="504" alt="Screenshot 2026-07-15 112826" src="https://github.com/user-attachments/assets/b70aff24-20e2-429b-ba38-5c3c1b30dca1" />
+
 
 A local, privacy-first document processing pipeline and AI assistant built with Python, Ollama, and open-source LLMs. This tool ingests complex academic PDFs and generates structured study guides, summaries, and practice questions entirely offline, ensuring zero data leakage and zero API costs.
 
