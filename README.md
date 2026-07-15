@@ -42,5 +42,8 @@ The pipeline is divided into modular stages:
     Install Dependencies:
     pip install -r requirements.txt
 
-    Run the Assistant:
-    python src/assistant_workflow.py --pdf data/sample_lecture.pdf
+    **Run the Assistant:**
+       Place your target PDF inside a `data/` folder in the root directory, then run:
+       ```bash
+       python src/assistant_workflow.py --pdf data/sample_lecture.pdf
+
