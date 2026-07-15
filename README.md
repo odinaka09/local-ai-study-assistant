@@ -43,7 +43,6 @@ The pipeline is divided into modular stages:
     pip install -r requirements.txt
 
     Run the Assistant:
-       Place your target PDF inside a `data/` folder in the root directory, then run:
-       bash
-       python src/assistant_workflow.py --pdf data/sample_lecture.pdf
+    Place your target PDF inside a `data/` folder in the root directory, then run:
+    python src/assistant_workflow.py --pdf data/sample_lecture.pdf
 
